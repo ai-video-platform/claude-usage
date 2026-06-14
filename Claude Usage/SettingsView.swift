@@ -42,7 +42,11 @@ struct SettingsView: View {
 
     @ViewBuilder private var connectionSection: some View {
         Section {
-            if model.claudeConnected {
+            if model.demoMode {
+                Label("Showing sample data", systemImage: "eye")
+                    .foregroundStyle(.secondary)
+                Button("Sign in to Claude") { showConnect = true }
+            } else if model.claudeConnected {
                 HStack {
                     Label {
                         VStack(alignment: .leading, spacing: 1) {
@@ -120,6 +124,9 @@ struct SettingsView: View {
             privacyLine("Everything stays on this device. There are no servers.")
             privacyLine("You sign in on Claude's own page. We never see your password.")
             privacyLine("Your session is stored only in this device's Keychain.")
+            Link(destination: AppInfo.privacyURL) {
+                Label("Privacy policy", systemImage: "hand.raised")
+            }
         } header: {
             Text("Privacy")
         }

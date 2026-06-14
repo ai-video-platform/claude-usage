@@ -22,7 +22,8 @@ final class UsageModel {
     /// Signed in, but the last fetch failed (expired session or offline).
     var fetchFailed: Bool = false
     var lastRefreshed: Date?
-    private var demoMode = false
+    /// Sample-data preview (also used by App Review, who cannot sign in to claude.ai).
+    private(set) var demoMode = false
     /// In memory demo history (QA only). Never read from or written to disk.
     var demoHistory: UsageHistory?
 
@@ -52,6 +53,8 @@ final class UsageModel {
 
     /// Called after the user completes the in-app Claude sign-in.
     func markClaudeConnected() {
+        demoMode = false
+        demoHistory = nil
         claudeConnected = true
         fetchFailed = false
         NotificationManager.requestAuthorization()   // ask in context, not over onboarding
@@ -60,6 +63,8 @@ final class UsageModel {
 
     func disconnectClaude() {
         KeychainStore.delete(KeychainStore.claudeSessionAccount)
+        demoMode = false
+        demoHistory = nil
         claudeConnected = false
         fetchFailed = false
         isSample = true

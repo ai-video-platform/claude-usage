@@ -130,6 +130,11 @@ struct OnboardingView: View {
                     .font(.headline).frame(maxWidth: .infinity)
             }
             .glassProminentButton().controlSize(.large).tint(Theme.accent)
+
+            if step == lastStep {
+                Button("Preview with sample data") { model.loadDemo() }
+                    .font(.subheadline).tint(Theme.accent)
+            }
         }
         .padding(.horizontal, 24)
         .padding(.top, 16)
