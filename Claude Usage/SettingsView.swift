@@ -147,7 +147,12 @@ struct SettingsView: View {
                 Spacer()
                 Text(appVersion).foregroundStyle(.secondary)
             }
-            Text("An independent app. Not affiliated with or endorsed by Anthropic. It reads your usage from claude.ai and may need an update if Claude changes its site.")
+            Link(destination: AppInfo.repoURL) {
+                Label("Source code on GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
+            }
+            Text("Free and open source, with no in app purchases.")
+                .font(.caption).foregroundStyle(.secondary)
+            Text("\(AppInfo.disclaimer) It reads your usage from claude.ai and may need an update if Claude changes its site.")
                 .font(.caption).foregroundStyle(.secondary)
         } header: {
             Text("About")

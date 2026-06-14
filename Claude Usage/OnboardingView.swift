@@ -14,13 +14,14 @@ struct OnboardingView: View {
     @State private var step = Int(ProcessInfo.processInfo.environment["CU_ONB"] ?? "0") ?? 0
     @State private var showConnect = false
 
-    private let lastStep = 2
+    private let lastStep = 3
 
     var body: some View {
         TabView(selection: $step) {
             problemPage.tag(0)
             privacyPage.tag(1)
-            setupPage.tag(2)
+            openSourcePage.tag(2)
+            setupPage.tag(3)
         }
         #if os(iOS)
         .tabViewStyle(.page(indexDisplayMode: .never))
@@ -75,6 +76,27 @@ struct OnboardingView: View {
         }
     }
 
+    private var openSourcePage: some View {
+        OnboardingPage(
+            hero: { SymbolHero("chevron.left.forwardslash.chevron.right", tint: Theme.accent) },
+            title: "Open source, top to bottom",
+            subtitle: "Every line is public. Read it, build it yourself, or send a fix."
+        ) {
+            FeatureRow("checkmark.seal.fill", "Free, no in app purchases",
+                       "The whole app, at no cost, forever.")
+            FeatureRow("eye.fill", "Nothing to hide",
+                       "See exactly what it does with your data.")
+            FeatureRow("arrow.triangle.branch", "Built in the open",
+                       "Issues and pull requests are welcome.")
+            Link(destination: AppInfo.repoURL) {
+                Label("View on GitHub", systemImage: "arrow.up.right")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .tint(Theme.accent)
+            .padding(.top, 4)
+        }
+    }
+
     private var setupPage: some View {
         OnboardingPage(
             hero: { UsageHero(percent: 62, color: Theme.accent, caption: "62% used") },
@@ -121,7 +143,7 @@ struct OnboardingView: View {
                 .glassProminentButton().controlSize(.large).tint(Theme.accent)
                 Text("Pro and Max plans. Team, Enterprise, and Google sign in are not supported.")
                     .font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(.center)
-                Text("An independent app. Not affiliated with or endorsed by Anthropic.")
+                Text(AppInfo.disclaimer)
                     .font(.caption2).foregroundStyle(.tertiary).multilineTextAlignment(.center)
             }
         }

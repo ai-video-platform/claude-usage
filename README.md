@@ -1,68 +1,44 @@
 # Claude Usage
 
-A free, informational app that mirrors Claude's `/usage` (the 5 hour and weekly limits,
-reset times, Opus vs Sonnet split, cost, and extra-credit balance) and surfaces it where you
-glance: the Mac menu bar, Mac/iPhone/iPad widgets, the iOS Lock Screen, and StandBy.
+A free, private, open source app that shows your Claude usage limits at a glance: in the macOS menu bar, on your Mac desktop, and on your iPhone and iPad Home Screen and Lock Screen.
 
-No accounts, no servers, no in app purchases. Data stays on device and in your own iCloud.
+It mirrors what you see on claude.ai, the rolling 5 hour session limit, the weekly limits (all models plus the per model sub limits), reset times, and any extra usage credits, in a calm, glanceable design.
 
-## How it gets data
+## Features
 
-| Source | Gives us | When |
-| --- | --- | --- |
-| Local JSONL (`~/.claude/projects/**/*.jsonl`) | tokens, cost (computed), per model / per project, history | macOS, always; incremental mtime cache so refreshes are fast |
-| OAuth-headers path (Claude Code token from the Keychain) | live 5 hour and weekly % + reset times | default live source, low privilege |
-| claude.ai web session (optional "Connect claude.ai") | Opus vs Sonnet split + extra-credit balance + spend | when the user connects (sessionKey cookie, Keychain, device-only) |
-| iCloud key-value store | the Mac's snapshot, mirrored to iPhone/iPad | iOS reads it (those devices can't see `~/.claude`) |
+- Live 5 hour and weekly usage, each with a pace marker that shows how far through the window you are.
+- A plain language read of where you stand and which limit you will hit first.
+- A weekly per model breakdown, taken from your account's real data (no fixed model list, so new models appear automatically).
+- Extra usage credits: remaining balance and monthly spend.
+- History: usage trends over time and a year activity grid, built and stored on device.
+- Alerts: a flexible notification rules system (cross a threshold, on pace to hit a limit, before a reset, and more).
+- Widgets: small, medium, and large, plus iOS Lock Screen and StandBy.
+- macOS: a menu bar item with selectable styles and a native window.
+- macOS extra: optional Claude Code stats from your local logs (opt in, read only, on device).
 
-Live values are wrapped in a graceful-degrade cache: a failed fetch falls back to the last
-good values (age-gated, reset-passed windows dropped) rather than going blank or showing 0%.
-The extra-credit dollar balance has no official API; it comes only from the claude.ai path.
+## Privacy
 
-## Architecture
+- You sign in on Claude's own web page. The app never sees your password.
+- Your session is stored only in this device's Keychain.
+- There are no servers and no accounts. Nothing leaves your device.
+
+## Requirements
+
+- macOS 14 or later, or iOS / iPadOS 17 or later. Liquid Glass on macOS 26 and iOS 26, with a material fallback below that.
+- A Claude Pro or Max plan. Team, Enterprise, and Google sign in are not supported.
+
+## Build
+
+Open `Claude Usage.xcodeproj` in Xcode and run the `Claude Usage` scheme. The shared engine is a local Swift package in `Core`, with its own tests:
 
 ```
-  macOS app (unsandboxed, reads ~/.claude + Keychain)
-    Core engine: incremental JSONL parse -> cost/burn/forecast
-    + live limits (OAuth headers, or claude.ai cookie)
-    -> UsageSnapshot
-         |--> App Group container  -> WidgetKit widgets (mac/iOS/iPad, incl. Lock Screen / StandBy)
-         |--> iCloud KVS           -> iPhone / iPad app
-         +--> local notifications (threshold alerts + reset "you're back" ping)
+cd Core && swift test
 ```
 
-The engine lives in a SwiftPM package (`Core`, product `HeadroomCore`) shared by the app, the
-widget extension, and a dev CLI (`headroom`). The app is `Claude Usage` (SwiftUI, multiplatform).
+## Disclaimer
 
-## Deployment targets
+This is an independent app. It is not affiliated with, endorsed by, or sponsored by Anthropic. "Claude" is a trademark of Anthropic, used here only to describe what the app reads.
 
-iOS 17 / iPadOS 17 / macOS 14 Sonoma. (A watchOS target with complications is not built yet.)
+## License
 
-## Distribution
-
-macOS is unsandboxed (it must read `~/.claude` and the Keychain) with hardened runtime on, so
-the channel is Developer ID / notarized, not the Mac App Store. App Group + iCloud capabilities
-must be enabled once in Xcode for signed builds (entitlements + `REGISTER_APP_GROUPS` are set).
-
-## Status
-
-- [x] Core engine: JSONL parse (dedup, synthetic-model exclusion), pricing, aggregation, snapshot, incremental scan cache
-- [x] Live limits: OAuth-headers path (verified), claude.ai web path (Opus/Sonnet + credits), graceful-degrade cache
-- [x] macOS menu bar app + popover + Settings
-- [x] WidgetKit widgets: system small/medium (mac + iOS), iOS accessory (Lock Screen / StandBy)
-- [x] Notifications: configurable threshold alerts + reset ping
-- [x] Sharing: App Group (widgets) + iCloud KVS (iPhone/iPad)
-- [x] Tests: 16 Core unit tests
-- [ ] App icon assets
-- [ ] watchOS app + complications
-- [ ] App-layer tests (UsageModel / NotificationManager)
-
-## Run the dev CLI
-
-```sh
-cd Core
-swift test
-swift run -c release headroom            # full report from ~/.claude (cached after first run)
-swift run headroom snapshot              # emit the UsageSnapshot JSON
-swift run headroom live                  # prove the live OAuth limits path on this machine
-```
+MIT. See [LICENSE](LICENSE).

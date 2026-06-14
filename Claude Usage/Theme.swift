@@ -2,7 +2,7 @@
 //  Theme.swift
 //  Claude Usage
 //
-//  Dark, glass forward design system from the handoff. Real Liquid Glass on
+//  Dark, glass forward design system. Real Liquid Glass on
 //  iOS 26 / macOS 26, with an ultraThinMaterial fallback on the iOS 17 / macOS 14
 //  floor. Tokens follow the brand intent: warm charcoal, Claude clay accent,
 //  traffic light health colors.

@@ -1,8 +1,7 @@
 import Foundation
 
-/// On-disk locations Headroom uses to hand data between the collector, the CLI,
-/// and (later) the app + widgets. The real app will swap this for an App Group
-/// container; the path-shaped API stays the same.
+/// On disk locations for sharing data between the app and the widget extension,
+/// through the App Group container.
 public enum SupportDir {
     /// Shared container so the (sandboxed) widget extension can read what the app writes.
     public static let appGroupID = "group.ai.aivideoplatform.claude.usuage"
@@ -168,9 +167,7 @@ public struct UsageSnapshot: Codable, Sendable {
 }
 
 public extension UsageSnapshot {
-    /// A representative snapshot for SwiftUI previews, widget placeholders, and
-    /// graceful fallback when no real data is available (e.g. on a sandboxed iOS
-    /// device before the first iCloud sync). Numbers mirror a real heavy-user week.
+    /// A representative snapshot for SwiftUI previews and widget placeholders.
     static var sample: UsageSnapshot {
         let now = Date()
         let weekReset = now.addingTimeInterval(4 * 86_400 + 6 * 3_600)
