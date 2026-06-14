@@ -75,10 +75,9 @@ struct SettingsView: View {
 
     @ViewBuilder private var displaySection: some View {
         Section {
-            Toggle("Show the pace marker", isOn: $settings.showPaceMarker)
             Picker("Default widget", selection: $settings.defaultWidgetMetric) {
-                Text("Weekly").tag(WidgetMetric.weekly)
                 Text("Session").tag(WidgetMetric.session)
+                Text("Weekly").tag(WidgetMetric.weekly)
             }
             #if os(macOS)
             Picker("Menu bar shows", selection: $settings.menuBarStyle) {

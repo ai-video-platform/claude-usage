@@ -32,7 +32,6 @@ final class AppSettings {
     var rules: [NotificationRule] { didSet { RulesStore.save(rules) } }
 
     // Display
-    var showPaceMarker: Bool { didSet { defaults.set(showPaceMarker, forKey: Keys.showPaceMarker) } }
     var defaultWidgetMetric: WidgetMetric { didSet { defaults.set(defaultWidgetMetric.rawValue, forKey: Keys.defaultWidgetMetric) } }
     var timeFormat: TimeFormatPref { didSet { defaults.set(timeFormat.rawValue, forKey: Keys.timeFormat) } }
     var dashboardTextSize: DashboardTextSize { didSet { defaults.set(dashboardTextSize.rawValue, forKey: Keys.dashboardTextSize) } }
@@ -44,7 +43,6 @@ final class AppSettings {
     private enum Keys {
         static let notificationsEnabled = "notificationsEnabled"
         static let threshold = "notificationThreshold"
-        static let showPaceMarker = "showPaceMarker"
         static let defaultWidgetMetric = "defaultWidgetMetric"
         static let timeFormat = "timeFormat"
         static let dashboardTextSize = "dashboardTextSize"
@@ -55,8 +53,7 @@ final class AppSettings {
         notificationsEnabled = defaults.object(forKey: Keys.notificationsEnabled) as? Bool ?? true
         threshold = defaults.object(forKey: Keys.threshold) as? Double ?? 80
         rules = RulesStore.load()
-        showPaceMarker = defaults.object(forKey: Keys.showPaceMarker) as? Bool ?? true
-        defaultWidgetMetric = WidgetMetric(rawValue: defaults.string(forKey: Keys.defaultWidgetMetric) ?? "") ?? .weekly
+        defaultWidgetMetric = WidgetMetric(rawValue: defaults.string(forKey: Keys.defaultWidgetMetric) ?? "") ?? .session
         timeFormat = TimeFormatPref(rawValue: defaults.string(forKey: Keys.timeFormat) ?? "") ?? .system
         dashboardTextSize = DashboardTextSize(rawValue: defaults.string(forKey: Keys.dashboardTextSize) ?? "") ?? .medium
         menuBarStyle = MenuBarStyle(rawValue: defaults.string(forKey: Keys.menuBarStyle) ?? "") ?? .percentageReset

@@ -2,9 +2,9 @@
 //  UsageWidget.swift
 //  ClaudeUsageWidgets
 //
-//  Renders the shared UsageSnapshot. Data is written by the app into the App Group
-//  container; the widget reads the latest snapshot (or sample on first run). A
-//  stale snapshot is marked, never shown as a fresh number.
+//  Horizontal bars (battery/storage pattern), session first, reset highlighted.
+//  No rings except the Lock Screen circular slot, which is circular by system
+//  design. Reads the shared UsageSnapshot; a stale snapshot is marked.
 //
 
 import WidgetKit
@@ -19,19 +19,12 @@ struct UsageEntry: TimelineEntry {
 }
 
 struct UsageProvider: TimelineProvider {
-    func placeholder(in context: Context) -> UsageEntry {
-        UsageEntry(date: Date(), snapshot: .sample)
-    }
-    func getSnapshot(in context: Context, completion: @escaping (UsageEntry) -> Void) {
-        completion(currentEntry())
-    }
+    func placeholder(in context: Context) -> UsageEntry { UsageEntry(date: Date(), snapshot: .sample) }
+    func getSnapshot(in context: Context, completion: @escaping (UsageEntry) -> Void) { completion(currentEntry()) }
     func getTimeline(in context: Context, completion: @escaping (Timeline<UsageEntry>) -> Void) {
-        let next = Date().addingTimeInterval(15 * 60)
-        completion(Timeline(entries: [currentEntry()], policy: .after(next)))
+        completion(Timeline(entries: [currentEntry()], policy: .after(Date().addingTimeInterval(15 * 60))))
     }
-    private func currentEntry() -> UsageEntry {
-        UsageEntry(date: Date(), snapshot: SnapshotStore.load() ?? .sample)
-    }
+    private func currentEntry() -> UsageEntry { UsageEntry(date: Date(), snapshot: SnapshotStore.load() ?? .sample) }
 }
 
 // MARK: - Widget
@@ -39,14 +32,12 @@ struct UsageProvider: TimelineProvider {
 struct UsageWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "ClaudeUsageWidget", provider: UsageProvider()) { entry in
-            UsageWidgetView(entry: entry)
-                .modifier(WidgetBackground())
+            UsageWidgetView(entry: entry).modifier(WidgetBackground())
         }
         .configurationDisplayName("Claude Usage")
-        .description("Your Claude weekly and 5 hour limits at a glance.")
+        .description("Your Claude session and weekly limits at a glance.")
         .supportedFamilies(Self.families)
     }
-
     static var families: [WidgetFamily] {
         #if os(iOS)
         return [.systemSmall, .systemMedium, .systemLarge, .accessoryCircular, .accessoryRectangular, .accessoryInline]
@@ -56,7 +47,7 @@ struct UsageWidget: Widget {
     }
 }
 
-// MARK: - Constants and helpers (widget target is separate from the app target)
+// MARK: - Helpers
 
 private enum W {
     static let session: TimeInterval = 5 * 3_600
@@ -64,22 +55,33 @@ private enum W {
     static let safe = Color(red: 0.31, green: 0.827, blue: 0.494)
     static let caution = Color(red: 1.0, green: 0.722, blue: 0.302)
     static let danger = Color(red: 1.0, green: 0.42, blue: 0.42)
-    static let accent = Color(red: 0.851, green: 0.467, blue: 0.341)
-
     static func color(_ p: Double) -> Color {
         switch p { case ..<70: return safe; case ..<90: return caution; default: return danger }
-    }
-    static func paceFraction(_ resetsAt: Date?, _ window: TimeInterval) -> Double? {
-        guard let resetsAt else { return nil }
-        return min(1, max(0, 1 - resetsAt.timeIntervalSinceNow / window))
     }
     static func isStale(_ date: Date) -> Bool { Date().timeIntervalSince(date) > 30 * 60 }
 }
 
-// MARK: - Background
+private func pct(_ p: Double?) -> String { p.map { "\(Int($0.rounded()))%" } ?? "··" }
 
-/// Accessory (Lock Screen / StandBy) families are transparent; home screen families
-/// get a frosted glass surface so the wallpaper shows through (Liquid Glass).
+private func reset(_ d: Date?) -> String {
+    guard let d else { return "resets time unknown" }
+    let s = max(0, d.timeIntervalSinceNow)
+    let days = Int(s) / 86_400, h = (Int(s) % 86_400) / 3_600, m = (Int(s) % 3_600) / 60
+    if days > 0 { return "resets in \(days)d" }
+    if h > 0 { return "resets in \(h)h \(m)m" }
+    return "resets in \(m)m"
+}
+private func shortReset(_ d: Date?) -> String {
+    guard let d else { return "" }
+    let s = max(0, d.timeIntervalSinceNow)
+    let days = Int(s) / 86_400, h = (Int(s) % 86_400) / 3_600, m = (Int(s) % 3_600) / 60
+    if days > 0 { return "\(days)d" }
+    if h > 0 { return "\(h)h" }
+    return "\(max(1, m))m"
+}
+
+// MARK: - Background (frosted material so the wallpaper shows through)
+
 struct WidgetBackground: ViewModifier {
     @Environment(\.widgetFamily) private var family
     func body(content: Content) -> some View {
@@ -96,12 +98,36 @@ struct WidgetBackground: ViewModifier {
     }
 }
 
+// MARK: - Bar
+
+struct WBar: View {
+    let label: String
+    let percent: Double?
+    var dot: Bool = false
+    var reset: Date? = nil          // shown inline after the percent
+    private var used: Double { percent ?? 0 }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 5) {
+                if dot { Circle().fill(W.color(used)).frame(width: 6, height: 6) }
+                Text(label).font(.caption.weight(.medium)).foregroundStyle(.primary)
+                Spacer()
+                Text(reset == nil ? pct(percent) : "\(pct(percent)) · \(shortReset(reset))")
+                    .font(.caption.weight(.semibold)).monospacedDigit()
+                    .foregroundStyle(W.color(used))
+            }
+            Gauge(value: used, in: 0...100) { EmptyView() }
+                .gaugeStyle(.accessoryLinearCapacity)
+                .tint(W.color(used))
+        }
+    }
+}
+
 // MARK: - Router
 
 struct UsageWidgetView: View {
     @Environment(\.widgetFamily) private var family
     let entry: UsageEntry
-
     var body: some View {
         switch family {
         case .systemSmall: SmallUsageView(entry: entry)
@@ -117,42 +143,13 @@ struct UsageWidgetView: View {
     }
 }
 
-// MARK: - Ring
-
-struct WidgetRing: View {
-    let title: String
-    let percent: Double?
-    var resetsAt: Date? = nil
-    var window: TimeInterval = W.weekly
-    var showPace: Bool = true
-    var lineWidth: CGFloat = 8
-
-    var body: some View {
-        GeometryReader { geo in
-            let d = min(geo.size.width, geo.size.height)
-            ZStack {
-                Circle().stroke(.primary.opacity(0.15), lineWidth: lineWidth)
-                if let p = percent {
-                    Circle().trim(from: 0, to: min(1, p / 100))
-                        .stroke(W.color(p), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                    if showPace, let frac = W.paceFraction(resetsAt, window) {
-                        Capsule().fill(.primary.opacity(0.7))
-                            .frame(width: 2, height: lineWidth + 5)
-                            .offset(y: -(d / 2 - lineWidth / 2))
-                            .rotationEffect(.degrees(frac * 360))
-                    }
-                }
-                VStack(spacing: 0) {
-                    Text(percent.map { "\(Int($0.rounded()))%" } ?? "··")
-                        .font(.system(size: d * 0.22, weight: .bold, design: .rounded))
-                        .foregroundStyle(.primary)
-                    Text(title).font(.system(size: max(8, d * 0.085), weight: .semibold))
-                        .foregroundStyle(.primary.opacity(0.55))
-                }
-            }
-        }
+private func titleRow(_ stale: Bool) -> some View {
+    HStack(spacing: 4) {
+        Image(systemName: "gauge.with.dots.needle.bottom.50percent").font(.caption2)
+        Text("Claude Usage").font(.caption.weight(.semibold))
+        if stale { Image(systemName: "clock.badge.exclamationmark").font(.caption2).foregroundStyle(.secondary) }
     }
+    .foregroundStyle(.primary)
 }
 
 // MARK: - System families
@@ -161,12 +158,17 @@ struct SmallUsageView: View {
     let entry: UsageEntry
     var body: some View {
         let live = entry.snapshot.live
-        VStack(spacing: 6) {
-            WidgetRing(title: "SESSION", percent: live?.fiveHour?.usedPercent,
-                       resetsAt: live?.fiveHour?.resetsAt, window: W.session)
-                .frame(width: 86, height: 86)
-            Text(reset(live?.fiveHour?.resetsAt))
-                .font(.system(size: 10)).foregroundStyle(.primary.opacity(0.6))
+        let s = live?.fiveHour?.usedPercent ?? 0
+        VStack(alignment: .leading, spacing: 6) {
+            titleRow(W.isStale(entry.snapshot.generatedAt))
+            Spacer(minLength: 0)
+            Text("SESSION").font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+            Text(pct(live?.fiveHour?.usedPercent))
+                .font(.system(size: 32, weight: .bold, design: .rounded)).monospacedDigit()
+                .foregroundStyle(.primary)
+            Gauge(value: s, in: 0...100) { EmptyView() }
+                .gaugeStyle(.accessoryLinearCapacity).tint(W.color(s))
+            Text(reset(live?.fiveHour?.resetsAt)).font(.caption2).foregroundStyle(W.color(s))
         }
     }
 }
@@ -175,25 +177,20 @@ struct MediumUsageView: View {
     let entry: UsageEntry
     var body: some View {
         let live = entry.snapshot.live
-        HStack(spacing: 16) {
-            WidgetRing(title: "SESSION", percent: live?.fiveHour?.usedPercent,
-                       resetsAt: live?.fiveHour?.resetsAt, window: W.session).frame(width: 74, height: 74)
-            WidgetRing(title: "WEEKLY", percent: live?.sevenDay?.usedPercent,
-                       resetsAt: live?.sevenDay?.resetsAt, window: W.weekly).frame(width: 74, height: 74)
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Claude Usage").font(.headline).foregroundStyle(.primary)
-                ForEach((live?.weeklyByModel ?? []).prefix(2), id: \.name) { m in
-                    modelLine(m.name, m.window.usedPercent)
-                }
-                Text(reset(live?.sevenDay?.resetsAt)).font(.caption2).foregroundStyle(.primary.opacity(0.4))
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                titleRow(W.isStale(entry.snapshot.generatedAt))
+                Spacer()
+                verdictChip(live)
             }
-            Spacer(minLength: 0)
-        }
-    }
-    private func modelLine(_ name: String, _ pct: Double) -> some View {
-        HStack(spacing: 5) {
-            Circle().fill(W.color(pct)).frame(width: 6, height: 6)
-            Text("\(name) \(Int(pct.rounded()))%").font(.caption).foregroundStyle(.primary.opacity(0.8))
+            WBar(label: "Session", percent: live?.fiveHour?.usedPercent, reset: live?.fiveHour?.resetsAt)
+            WBar(label: "Weekly", percent: live?.sevenDay?.usedPercent, reset: live?.sevenDay?.resetsAt)
+            HStack(spacing: 12) {
+                ForEach((live?.weeklyByModel ?? []).prefix(3), id: \.name) { m in
+                    Text("\(m.name) \(pct(m.window.usedPercent))").font(.caption2).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+            }
         }
     }
 }
@@ -203,71 +200,38 @@ struct LargeUsageView: View {
     var body: some View {
         let live = entry.snapshot.live
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Claude Usage").font(.headline).foregroundStyle(.primary)
-                Spacer()
-                if W.isStale(entry.snapshot.generatedAt) {
-                    Image(systemName: "clock.badge.exclamationmark").font(.caption2).foregroundStyle(.primary.opacity(0.5))
-                }
-            }
-            statusLine(live)
-            HStack(spacing: 18) {
-                WidgetRing(title: "SESSION", percent: live?.fiveHour?.usedPercent,
-                           resetsAt: live?.fiveHour?.resetsAt, window: W.session).frame(width: 80, height: 80)
-                WidgetRing(title: "WEEKLY", percent: live?.sevenDay?.usedPercent,
-                           resetsAt: live?.sevenDay?.resetsAt, window: W.weekly).frame(width: 80, height: 80)
-                Spacer()
-            }
+            titleRow(W.isStale(entry.snapshot.generatedAt))
+            verdictLine(live)
+            WBar(label: "Session", percent: live?.fiveHour?.usedPercent, reset: live?.fiveHour?.resetsAt)
+            WBar(label: "Weekly", percent: live?.sevenDay?.usedPercent, reset: live?.sevenDay?.resetsAt)
             ForEach((live?.weeklyByModel ?? []).prefix(3), id: \.name) { m in
-                bar(m.name, m.window.usedPercent)
+                WBar(label: m.name, percent: m.window.usedPercent, dot: true)
             }
             Spacer(minLength: 0)
         }
     }
-
-    @ViewBuilder private func statusLine(_ live: LiveLimits?) -> some View {
-        let maxPct = [live?.sevenDay?.usedPercent, live?.fiveHour?.usedPercent, live?.sevenDayOpus?.usedPercent]
-            .compactMap { $0 }.max() ?? 0
-        let (icon, text, color): (String, String, Color) = {
-            if maxPct >= 90 { return ("exclamationmark.triangle.fill", "Running high", W.danger) }
-            if maxPct >= 70 { return ("exclamationmark.circle.fill", "Getting close", W.caution) }
-            return ("checkmark.circle.fill", "You are on track", W.safe)
-        }()
-        HStack(spacing: 6) {
-            Image(systemName: icon).foregroundStyle(color)
-            Text(text).foregroundStyle(.primary.opacity(0.85))
-            Text(reset(live?.sevenDay?.resetsAt)).foregroundStyle(.primary.opacity(0.4))
-        }
-        .font(.caption)
-    }
-
-    private func bar(_ name: String, _ pct: Double) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack {
-                Text(name).font(.caption).foregroundStyle(.primary.opacity(0.8))
-                Spacer()
-                Text("\(Int(pct.rounded()))%").font(.caption.monospacedDigit()).foregroundStyle(.primary.opacity(0.6))
-            }
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(.primary.opacity(0.12))
-                    Capsule().fill(W.color(pct)).frame(width: geo.size.width * min(1, pct / 100))
-                }
-            }
-            .frame(height: 6)
-        }
-    }
 }
 
-// MARK: - Shared text helpers
+// Verdict helpers
 
-private func reset(_ d: Date?) -> String {
-    guard let d else { return "limits unavailable" }
-    let s = max(0, d.timeIntervalSinceNow)
-    let days = Int(s) / 86_400, hours = (Int(s) % 86_400) / 3_600
-    return days > 0 ? "resets in \(days)d \(hours)h" : "resets in \(hours)h"
+private func maxUsed(_ live: LiveLimits?) -> Double {
+    [live?.fiveHour?.usedPercent, live?.sevenDay?.usedPercent, live?.sevenDayOpus?.usedPercent]
+        .compactMap { $0 }.max() ?? 0
 }
-private func pct(_ p: Double?) -> String { p.map { "\(Int($0.rounded()))%" } ?? "··" }
+private func verdictChip(_ live: LiveLimits?) -> some View {
+    let m = maxUsed(live)
+    let (icon, text, color): (String, String, Color) = m >= 90
+        ? ("exclamationmark.triangle.fill", "High", W.danger)
+        : (m >= 70 ? ("exclamationmark.circle.fill", "Close", W.caution) : ("checkmark.circle.fill", "On track", W.safe))
+    return Label(text, systemImage: icon).font(.caption2).foregroundStyle(color)
+}
+private func verdictLine(_ live: LiveLimits?) -> some View {
+    let m = maxUsed(live)
+    let (icon, text, color): (String, String, Color) = m >= 90
+        ? ("exclamationmark.triangle.fill", "A limit is nearly used up.", W.danger)
+        : (m >= 70 ? ("exclamationmark.circle.fill", "Getting close to a limit.", W.caution) : ("checkmark.circle.fill", "You are on track.", W.safe))
+    return Label(text, systemImage: icon).font(.caption).foregroundStyle(color)
+}
 
 // MARK: - Lock Screen / StandBy accessories
 
@@ -275,8 +239,8 @@ private func pct(_ p: Double?) -> String { p.map { "\(Int($0.rounded()))%" } ?? 
 struct AccessoryCircularView: View {
     let entry: UsageEntry
     var body: some View {
-        if let p = entry.snapshot.live?.sevenDay?.usedPercent {
-            Gauge(value: min(1, p / 100)) { Text("Wk") } currentValueLabel: { Text("\(Int(p.rounded()))") }
+        if let p = entry.snapshot.live?.fiveHour?.usedPercent {
+            Gauge(value: min(1, p / 100)) { Text("5h") } currentValueLabel: { Text("\(Int(p.rounded()))") }
                 .gaugeStyle(.accessoryCircularCapacity)
         } else {
             Image(systemName: "gauge.with.dots.needle.bottom.50percent")
@@ -289,10 +253,10 @@ struct AccessoryRectangularView: View {
     var body: some View {
         let live = entry.snapshot.live
         VStack(alignment: .leading, spacing: 2) {
-            Text("Claude Usage").font(.caption.weight(.semibold))
-            Text("Weekly \(pct(live?.sevenDay?.usedPercent))   5h \(pct(live?.fiveHour?.usedPercent))")
-                .font(.caption2)
-            Text(reset(live?.sevenDay?.resetsAt)).font(.caption2).foregroundStyle(.secondary)
+            Text("Claude · Session \(pct(live?.fiveHour?.usedPercent))").font(.caption.weight(.semibold))
+            Gauge(value: live?.fiveHour?.usedPercent ?? 0, in: 0...100) { EmptyView() }
+                .gaugeStyle(.accessoryLinearCapacity)
+            Text(reset(live?.fiveHour?.resetsAt)).font(.caption2).foregroundStyle(.secondary)
         }
     }
 }
@@ -301,7 +265,8 @@ struct AccessoryInlineView: View {
     let entry: UsageEntry
     var body: some View {
         let live = entry.snapshot.live
-        Text("Claude wk \(pct(live?.sevenDay?.usedPercent)) · 5h \(pct(live?.fiveHour?.usedPercent))")
+        Label("Claude 5h \(pct(live?.fiveHour?.usedPercent)) · wk \(pct(live?.sevenDay?.usedPercent))",
+              systemImage: "clock")
     }
 }
 #endif

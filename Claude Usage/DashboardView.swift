@@ -81,32 +81,15 @@ struct DashboardView: View {
 
     @ViewBuilder private var limitsCard: some View {
         if let live, hasRealData, (live.fiveHour != nil || live.sevenDay != nil) {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(spacing: 24) {
-                    UsageRing(title: "Session",
-                              percent: live.fiveHour?.usedPercent,
-                              resetsAt: live.fiveHour?.resetsAt,
-                              window: UsageWindow.session,
-                              showPace: settings.showPaceMarker)
-                    UsageRing(title: "Weekly",
-                              percent: live.sevenDay?.usedPercent,
-                              resetsAt: live.sevenDay?.resetsAt,
-                              window: UsageWindow.weekly,
-                              showPace: settings.showPaceMarker)
+            VStack(alignment: .leading, spacing: 18) {
+                MetricBar(label: "Session", percent: live.fiveHour?.usedPercent,
+                          resetsAt: live.fiveHour?.resetsAt, showReset: true)
+                MetricBar(label: "Weekly", percent: live.sevenDay?.usedPercent,
+                          resetsAt: live.sevenDay?.resetsAt, showReset: true)
+                ForEach(live.weeklyByModel ?? [], id: \.name) { m in
+                    MetricBar(label: m.name, percent: m.window.usedPercent,
+                              dotColor: Theme.health(m.window.usedPercent))
                 }
-                .frame(maxWidth: .infinity)
-
-                let models = live.weeklyByModel ?? []
-                if !models.isEmpty {
-                    CardCaption(text: "Weekly by model")
-                    ForEach(models, id: \.name) { m in
-                        UsageBar(label: m.name, percent: m.window.usedPercent,
-                                 resetsAt: m.window.resetsAt, window: UsageWindow.weekly,
-                                 showPace: settings.showPaceMarker,
-                                 dotColor: Theme.health(m.window.usedPercent))
-                    }
-                }
-
                 if live.source == "cache" {
                     Label("Showing last known limits. Trying to refresh.",
                           systemImage: "clock.arrow.circlepath")
@@ -120,13 +103,10 @@ struct DashboardView: View {
     }
 
     private var loadingCard: some View {
-        HStack(spacing: 18) {
-            UsageRing(title: "Session", percent: nil, showPace: false, diameter: 92, lineWidth: 10, showReset: false)
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Loading your limits").font(.headline).foregroundStyle(Theme.ink)
-                Text("This takes a second.").font(.caption).foregroundStyle(Theme.inkSecondary)
-            }
-            Spacer(minLength: 0)
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Loading your limits").font(.headline).foregroundStyle(Theme.ink)
+            MetricBar(label: "Session", percent: nil)
+            MetricBar(label: "Weekly", percent: nil)
         }
         .glassCard(padding: 18)
     }
