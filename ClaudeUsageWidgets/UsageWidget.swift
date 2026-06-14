@@ -182,11 +182,8 @@ struct MediumUsageView: View {
                        resetsAt: live?.fiveHour?.resetsAt, window: W.session).frame(width: 74, height: 74)
             VStack(alignment: .leading, spacing: 3) {
                 Text("Claude Usage").font(.headline).foregroundStyle(.primary)
-                if let opus = live?.sevenDayOpus {
-                    modelLine("Opus", opus.usedPercent)
-                }
-                if let sonnet = live?.sevenDaySonnet {
-                    modelLine("Sonnet", sonnet.usedPercent)
+                ForEach((live?.weeklyByModel ?? []).prefix(2), id: \.name) { m in
+                    modelLine(m.name, m.window.usedPercent)
                 }
                 Text(reset(live?.sevenDay?.resetsAt)).font(.caption2).foregroundStyle(.primary.opacity(0.4))
             }
@@ -221,8 +218,9 @@ struct LargeUsageView: View {
                            resetsAt: live?.fiveHour?.resetsAt, window: W.session).frame(width: 80, height: 80)
                 Spacer()
             }
-            if let opus = live?.sevenDayOpus { bar("Opus", opus.usedPercent) }
-            if let sonnet = live?.sevenDaySonnet { bar("Sonnet", sonnet.usedPercent) }
+            ForEach((live?.weeklyByModel ?? []).prefix(3), id: \.name) { m in
+                bar(m.name, m.window.usedPercent)
+            }
             Spacer(minLength: 0)
         }
     }

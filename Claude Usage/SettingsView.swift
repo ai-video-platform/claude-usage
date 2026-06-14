@@ -77,15 +77,9 @@ struct SettingsView: View {
                 Text("Session").tag(WidgetMetric.session)
             }
             #if os(macOS)
-            Picker("Menu bar style", selection: $settings.menuBarStyle) {
-                Text("Percentage").tag(MenuBarStyle.percentage)
-                Text("Mini bar").tag(MenuBarStyle.miniBar)
-                Text("Mini ring").tag(MenuBarStyle.miniRing)
-                Text("Icon fill").tag(MenuBarStyle.iconFill)
-                Text("Session and weekly").tag(MenuBarStyle.sessionWeekly)
+            Picker("Menu bar shows", selection: $settings.menuBarStyle) {
+                ForEach(MenuBarStyle.allCases, id: \.self) { Text($0.title).tag($0) }
             }
-            Toggle("Show weekly alongside session", isOn: $settings.showWeeklyInMenuBar)
-            Toggle("Fill the icon by usage", isOn: $settings.fillIconByUsage)
             Picker("Dashboard text size", selection: $settings.dashboardTextSize) {
                 Text("Small").tag(DashboardTextSize.small)
                 Text("Medium").tag(DashboardTextSize.medium)
