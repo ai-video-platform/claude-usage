@@ -2,9 +2,9 @@
 //  OnboardingView.swift
 //  Claude Usage
 //
-//  A short, native feeling three step intro: name the pain, prove it is private,
-//  then earn the sign in. Apple style feature rows, a pinned bottom bar, and a
-//  prominent Liquid Glass call to action.
+//  A short, native three step intro: name the pain, prove it is private and open
+//  source, then earn the sign in. Apple style feature rows, a constant bottom bar
+//  for smooth page transitions, and a prominent Liquid Glass call to action.
 //
 
 import SwiftUI
@@ -30,7 +30,7 @@ struct OnboardingView: View {
         .safeAreaInset(edge: .bottom) { bottomBar }
         .overlay(alignment: .topTrailing) {
             if step < lastStep {
-                Button("Skip") { withAnimation { step = lastStep } }
+                Button("Skip") { withAnimation(.smooth) { step = lastStep } }
                     .font(.body)
                     .padding(.horizontal, 20).padding(.top, 8)
             }
@@ -44,50 +44,45 @@ struct OnboardingView: View {
         #endif
     }
 
+    private func advance() {
+        if step < lastStep { withAnimation(.smooth) { step += 1 } } else { showConnect = true }
+    }
+
     // MARK: Pages
 
     private var problemPage: some View {
         OnboardingPage(
             hero: { UsageHero(percent: 96, color: Theme.healthDanger, caption: "96% used") },
-            title: "Stop hitting the wall by surprise",
-            subtitle: "Claude's limits are invisible until you slam into them. Then you wait, with no idea for how long."
+            title: "Stop hitting limits blind",
+            subtitle: "Claude's limits are invisible until you slam into them."
         ) {
-            FeatureRow("bell.slash.fill", "No warning",
-                       "You get cut off mid task, with no heads up.")
-            FeatureRow("questionmark.circle.fill", "No idea when it is back",
-                       "Was that a five hour wait, or a whole week?")
-            FeatureRow("bolt.slash.fill", "Opus runs dry first",
-                       "Your best model vanishes right when you need it.")
+            FeatureRow("bell.slash.fill", "No warning before you are cut off")
+            FeatureRow("questionmark.circle.fill", "No idea when access returns")
+            FeatureRow("bolt.slash.fill", "Opus runs out first")
         }
     }
 
     private var privacyPage: some View {
         OnboardingPage(
             hero: { SymbolHero("lock.shield.fill", tint: Theme.healthSafe) },
-            title: "Yours alone. Truly private.",
-            subtitle: "No account to create. No servers to trust. Your usage never leaves this device."
+            title: "Private by default",
+            subtitle: "No account, no servers, nothing leaves your device."
         ) {
-            FeatureRow("lock.fill", "You sign in on Claude's page",
-                       "The app never sees your password.")
-            FeatureRow("hand.raised.fill", "Nothing leaves your device",
-                       "No servers, no analytics, no sharing.")
-            FeatureRow("key.fill", "Stored in your Keychain",
-                       "Your session is locked to this device.")
+            FeatureRow("lock.fill", "Sign in on Claude's own page")
+            FeatureRow("hand.raised.fill", "Nothing leaves your device")
+            FeatureRow("key.fill", "Session stays in your Keychain")
         }
     }
 
     private var openSourcePage: some View {
         OnboardingPage(
             hero: { SymbolHero("chevron.left.forwardslash.chevron.right", tint: Theme.accent) },
-            title: "Open source, top to bottom",
-            subtitle: "Every line is public. Read it, build it yourself, or send a fix."
+            title: "Open source",
+            subtitle: "Every line is public. Read it, fork it, send a PR."
         ) {
-            FeatureRow("checkmark.seal.fill", "Free, no in app purchases",
-                       "The whole app, at no cost, forever.")
-            FeatureRow("eye.fill", "Nothing to hide",
-                       "See exactly what it does with your data.")
-            FeatureRow("arrow.triangle.branch", "Built in the open",
-                       "Issues and pull requests are welcome.")
+            FeatureRow("checkmark.seal.fill", "Free, no in app purchases")
+            FeatureRow("eye.fill", "Nothing hidden")
+            FeatureRow("arrow.triangle.branch", "Issues and PRs welcome")
             Link(destination: AppInfo.repoURL) {
                 Label("View on GitHub", systemImage: "arrow.up.right")
                     .font(.subheadline.weight(.semibold))
@@ -100,21 +95,25 @@ struct OnboardingView: View {
     private var setupPage: some View {
         OnboardingPage(
             hero: { UsageHero(percent: 62, color: Theme.accent, caption: "62% used") },
-            title: "Your Claude limits, at a glance",
-            subtitle: "Your 5 hour and weekly usage, when it resets, and your credits, everywhere you look."
+            title: "See it all at a glance",
+            subtitle: "Session and weekly usage, resets, and credits."
         ) {
-            FeatureRow("gauge.with.needle", "Know how much is left",
-                       "Live 5 hour and weekly usage.")
-            FeatureRow("clock.arrow.circlepath", "Know when it resets",
-                       "Exact reset times for every limit.")
-            FeatureRow("chart.line.uptrend.xyaxis", "See if you are on pace",
-                       "A simple ahead or behind read.")
-            FeatureRow("bell.badge.fill", "Get warned early",
-                       "A nudge before you hit a limit.")
+            FeatureRow("gauge.with.needle", "How much is left")
+            FeatureRow("clock.arrow.circlepath", "When it resets")
+            FeatureRow("chart.line.uptrend.xyaxis", "Whether you are on pace")
+            FeatureRow("bell.badge.fill", "A heads up before you hit a limit")
+            VStack(spacing: 4) {
+                Text("Pro and Max plans only.")
+                Text(AppInfo.disclaimer)
+            }
+            .font(.caption2).foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(.top, 12)
         }
     }
 
-    // MARK: Bottom bar
+    // MARK: Bottom bar (constant height for smooth transitions)
 
     private var bottomBar: some View {
         VStack(spacing: 16) {
@@ -126,26 +125,11 @@ struct OnboardingView: View {
                         .animation(.snappy, value: step)
                 }
             }
-
-            if step < lastStep {
-                Button { withAnimation { step += 1 } } label: {
-                    Text("Continue").font(.headline).frame(maxWidth: .infinity)
-                }
-                .glassProminentButton().controlSize(.large).tint(Theme.accent)
-            } else {
-                Label("You sign in on Claude's own page. We never see your password.",
-                      systemImage: "lock.fill")
-                    .font(.caption).foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                Button { showConnect = true } label: {
-                    Text("Sign in to Claude").font(.headline).frame(maxWidth: .infinity)
-                }
-                .glassProminentButton().controlSize(.large).tint(Theme.accent)
-                Text("Pro and Max plans. Team, Enterprise, and Google sign in are not supported.")
-                    .font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(.center)
-                Text(AppInfo.disclaimer)
-                    .font(.caption2).foregroundStyle(.tertiary).multilineTextAlignment(.center)
+            Button(action: advance) {
+                Text(step < lastStep ? "Continue" : "Sign in to Claude")
+                    .font(.headline).frame(maxWidth: .infinity)
             }
+            .glassProminentButton().controlSize(.large).tint(Theme.accent)
         }
         .padding(.horizontal, 24)
         .padding(.top, 16)
@@ -192,7 +176,7 @@ private struct OnboardingPage<Hero: View, Rows: View>: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                 }
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 18) {
                     rows()
                 }
                 .padding(.top, 4)
@@ -206,16 +190,16 @@ private struct OnboardingPage<Hero: View, Rows: View>: View {
     }
 }
 
-/// Apple style feature row: symbol in the accent, title, and a one line subtitle.
+/// Apple style feature row: a symbol in the accent, a title, and an optional subtitle.
 private struct FeatureRow: View {
     let symbol: String
     let title: String
-    let subtitle: String
-    init(_ symbol: String, _ title: String, _ subtitle: String) {
+    var subtitle: String?
+    init(_ symbol: String, _ title: String, _ subtitle: String? = nil) {
         self.symbol = symbol; self.title = title; self.subtitle = subtitle
     }
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
+        HStack(alignment: subtitle == nil ? .center : .top, spacing: 16) {
             Image(systemName: symbol)
                 .font(.title2)
                 .foregroundStyle(Theme.accent)
@@ -223,8 +207,10 @@ private struct FeatureRow: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.headline)
-                Text(subtitle).font(.subheadline).foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                if let subtitle {
+                    Text(subtitle).font(.subheadline).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             Spacer(minLength: 0)
         }
