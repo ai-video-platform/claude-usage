@@ -49,6 +49,8 @@ struct ContentView: View {
         switch screen {
         case "history": NavigationStack { HistoryView(model: model) }
         case "settings": NavigationStack { SettingsView(model: model, settings: settings) }
+        case "gallery": GalleryView(page: 0)
+        case "gallery2": GalleryView(page: 1)
         case "rules": NavigationStack { RulesListView(settings: settings) }
         case "editor": RuleEditorView(rule: NotificationRule(), allowFreeText: true) { _ in }
         #if canImport(WebKit)

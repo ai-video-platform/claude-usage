@@ -162,10 +162,10 @@ struct SmallUsageView: View {
     var body: some View {
         let live = entry.snapshot.live
         VStack(spacing: 6) {
-            WidgetRing(title: "WEEKLY", percent: live?.sevenDay?.usedPercent,
-                       resetsAt: live?.sevenDay?.resetsAt, window: W.weekly)
+            WidgetRing(title: "SESSION", percent: live?.fiveHour?.usedPercent,
+                       resetsAt: live?.fiveHour?.resetsAt, window: W.session)
                 .frame(width: 86, height: 86)
-            Text(reset(live?.sevenDay?.resetsAt))
+            Text(reset(live?.fiveHour?.resetsAt))
                 .font(.system(size: 10)).foregroundStyle(.primary.opacity(0.6))
         }
     }
@@ -176,10 +176,10 @@ struct MediumUsageView: View {
     var body: some View {
         let live = entry.snapshot.live
         HStack(spacing: 16) {
+            WidgetRing(title: "SESSION", percent: live?.fiveHour?.usedPercent,
+                       resetsAt: live?.fiveHour?.resetsAt, window: W.session).frame(width: 74, height: 74)
             WidgetRing(title: "WEEKLY", percent: live?.sevenDay?.usedPercent,
                        resetsAt: live?.sevenDay?.resetsAt, window: W.weekly).frame(width: 74, height: 74)
-            WidgetRing(title: "5 HOUR", percent: live?.fiveHour?.usedPercent,
-                       resetsAt: live?.fiveHour?.resetsAt, window: W.session).frame(width: 74, height: 74)
             VStack(alignment: .leading, spacing: 3) {
                 Text("Claude Usage").font(.headline).foregroundStyle(.primary)
                 ForEach((live?.weeklyByModel ?? []).prefix(2), id: \.name) { m in
@@ -212,10 +212,10 @@ struct LargeUsageView: View {
             }
             statusLine(live)
             HStack(spacing: 18) {
+                WidgetRing(title: "SESSION", percent: live?.fiveHour?.usedPercent,
+                           resetsAt: live?.fiveHour?.resetsAt, window: W.session).frame(width: 80, height: 80)
                 WidgetRing(title: "WEEKLY", percent: live?.sevenDay?.usedPercent,
                            resetsAt: live?.sevenDay?.resetsAt, window: W.weekly).frame(width: 80, height: 80)
-                WidgetRing(title: "5 HOUR", percent: live?.fiveHour?.usedPercent,
-                           resetsAt: live?.fiveHour?.resetsAt, window: W.session).frame(width: 80, height: 80)
                 Spacer()
             }
             ForEach((live?.weeklyByModel ?? []).prefix(3), id: \.name) { m in

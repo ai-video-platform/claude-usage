@@ -19,19 +19,17 @@ struct MenuBarLabel: View {
 
     private var live: LiveLimits? { model.isSample ? nil : model.snapshot.live }
 
-    /// The window closest to its limit, and when it resets.
-    private var binding: (pct: Double, reset: Date?)? {
+    /// Session first: the rolling 5 hour limit is the most relevant to a developer.
+    /// Falls back to the weekly window when there is no session window.
+    private var primary: (pct: Double, reset: Date?)? {
         guard let live else { return nil }
-        var windows: [(Double, Date?)] = []
-        if let s = live.fiveHour { windows.append((s.usedPercent, s.resetsAt)) }
-        if let w = live.sevenDay { windows.append((w.usedPercent, w.resetsAt)) }
-        for m in (live.weeklyByModel ?? []) { windows.append((m.window.usedPercent, m.window.resetsAt)) }
-        guard let top = windows.max(by: { $0.0 < $1.0 }) else { return nil }
-        return (top.0, top.1)
+        if let s = live.fiveHour { return (s.usedPercent, s.resetsAt) }
+        if let w = live.sevenDay { return (w.usedPercent, w.resetsAt) }
+        return nil
     }
 
     var body: some View {
-        if let live, let b = binding {
+        if let live, let b = primary {
             switch settings.menuBarStyle {
             case .percentage:
                 Text("\(pct(b.pct))%").foregroundStyle(color(b.pct))
@@ -125,7 +123,7 @@ struct MenuBarPopover: View {
             .font(.callout)
             .padding(.horizontal, 14).padding(.vertical, 8)
         }
-        .frame(width: 380, height: 600)
+        .frame(width: 400, height: 620)
         .background(.ultraThinMaterial)
     }
 }
