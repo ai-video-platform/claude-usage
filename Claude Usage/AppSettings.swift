@@ -9,14 +9,14 @@ import Observation
 enum WidgetMetric: String, CaseIterable { case weekly, session }
 enum TimeFormatPref: String, CaseIterable { case system, h24, h12 }
 enum MenuBarStyle: String, CaseIterable {
-    case percentage, percentageReset, timeLeft, credits, ring, sessionWeekly
+    case percentageReset, percentage, timeLeft, credits, ring, sessionWeekly
     var title: String {
         switch self {
-        case .percentage: return "Percentage"
-        case .percentageReset: return "Percentage and time left"
-        case .timeLeft: return "Time left"
+        case .percentageReset: return "Session percent and time left"
+        case .percentage: return "Session percent"
+        case .timeLeft: return "Session time left"
         case .credits: return "Credits left"
-        case .ring: return "Ring and percentage"
+        case .ring: return "Session ring and percent"
         case .sessionWeekly: return "Session and weekly"
         }
     }
