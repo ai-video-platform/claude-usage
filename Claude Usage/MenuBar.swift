@@ -34,9 +34,10 @@ struct MenuBarLabel: View {
             case .percentage:
                 Text("\(pct(b.pct))%").foregroundStyle(color(b.pct))
             case .percentageReset:
-                HStack(spacing: 4) {
+                if let r = b.reset {
+                    Text("\(pct(b.pct))% · \(shortReset(r))").foregroundStyle(color(b.pct))
+                } else {
                     Text("\(pct(b.pct))%").foregroundStyle(color(b.pct))
-                    if let r = b.reset { Text(shortReset(r)).foregroundStyle(.secondary) }
                 }
             case .timeLeft:
                 if let r = b.reset {
