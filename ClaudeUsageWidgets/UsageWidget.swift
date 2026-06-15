@@ -40,9 +40,9 @@ struct UsageWidget: Widget {
     }
     static var families: [WidgetFamily] {
         #if os(iOS)
-        return [.systemSmall, .systemMedium, .systemLarge, .accessoryCircular, .accessoryRectangular, .accessoryInline]
+        return [.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular, .accessoryInline]
         #else
-        return [.systemSmall, .systemMedium, .systemLarge]
+        return [.systemSmall, .systemMedium]
         #endif
     }
 }
@@ -75,8 +75,8 @@ private func shortReset(_ d: Date?) -> String {
     guard let d else { return "" }
     let s = max(0, d.timeIntervalSinceNow)
     let days = Int(s) / 86_400, h = (Int(s) % 86_400) / 3_600, m = (Int(s) % 3_600) / 60
-    if days > 0 { return "\(days)d" }
-    if h > 0 { return "\(h)h" }
+    if days > 0 { return "\(days)d \(h)h" }
+    if h > 0 { return "\(h)h \(m)m" }
     return "\(max(1, m))m"
 }
 

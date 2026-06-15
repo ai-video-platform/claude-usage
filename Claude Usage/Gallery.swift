@@ -22,7 +22,6 @@ struct GalleryView: View {
                     section("Widget · Small") { HStack(spacing: 16) { smallWidget; lockCircular } }
                     section("Widget · Medium") { mediumWidget }
                 } else {
-                    section("Widget · Large") { largeWidget }
                     section("Lock Screen · Rectangular") { lockRectangular }
                     section("Lock Screen · Inline") { lockInline }
                 }
@@ -179,8 +178,8 @@ struct GalleryView: View {
         guard let d else { return "now" }
         let s = max(0, d.timeIntervalSinceNow)
         let day = Int(s) / 86_400, h = (Int(s) % 86_400) / 3_600, m = (Int(s) % 3_600) / 60
-        if day >= 1 { return "\(day)d" }
-        if h >= 1 { return "\(h)h" }
+        if day >= 1 { return "\(day)d \(h)h" }
+        if h >= 1 { return "\(h)h \(m)m" }
         return "\(max(1, m))m"
     }
 }

@@ -83,8 +83,8 @@ struct MenuBarLabel: View {
     private func shortReset(_ d: Date) -> String {
         let s = max(0, d.timeIntervalSinceNow)
         let day = Int(s) / 86_400, h = (Int(s) % 86_400) / 3_600, m = (Int(s) % 3_600) / 60
-        if day >= 1 { return "\(day)d" }
-        if h >= 1 { return "\(h)h" }
+        if day >= 1 { return "\(day)d \(h)h" }
+        if h >= 1 { return "\(h)h \(m)m" }
         return "\(max(1, m))m"
     }
 
